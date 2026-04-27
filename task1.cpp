@@ -1,0 +1,50 @@
+#include <Adafruit_NeoPixel.h>
+ 
+const int LED_PIN = 2; // M5Stamp C3Uの内蔵NeoPixel LEDはGPIO2に接続されています
+const int BUTTON_PIN = 9; // M5Stamp C3UのボタンはGPIO9に接続されています
+const int GPIO7_PIN = 7; // GPIO 7番ピン
+const int NUM_LEDS = 1; // 内蔵LEDの数
+ 
+Adafruit_NeoPixel pixels(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+ 
+bool colorState = false; // 色の状態 (false: 赤, true: 青)
+bool lastButtonState = HIGH; // 前回のボタン状態
+unsigned long lastToggleTime = 0; // GPIO 7 最後の切り替え時刻
+bool gpio7State = false; // GPIO 7 の状態
+ 
+void setup() {
+  pinMode(BUTTON_PIN, INPUT_PULLUP); // ボタンをプルアップ入力に設定
+  pinMode(GPIO7_PIN, OUTPUT); // GPIO 7を出力ピンに設定
+  digitalWrite(GPIO7_PIN, LOW); // 初期状態を LOW に設定
+  pixels.begin(); // NeoPixelを初期化
+  pixels.setBrightness(100); // 明るさを100に設定 (眩しさを抑える)
+  pixels.setPixelColor(0, pixels.Color(255, 0, 0)); // 初期状態を赤に設定
+  pixels.show(); // 初期状態を表示
+}
+ 
+void loop() {
+  unsigned long currentTime = millis();
+ 
+  // GPIO 7 を1秒間隔で HIGH/LOW に切り替え
+  if (currentTime - lastToggleTime >= 1000) {
+    gpio7State = !gpio7State;
+    digitalWrite(GPIO7_PIN, gpio7State ? HIGH : LOW);
+    lastToggleTime = currentTime;
+  }
+ 
+  bool buttonState = digitalRead(BUTTON_PIN);
+ 
+  // ボタンが押されたら（LOWになったら）
+  if (buttonState == LOW && lastButtonState == HIGH) {
+    colorState = !colorState; // 色をトグル
+    if (colorState) {
+      pixels.setPixelColor(0, pixels.Color(0, 0, 255)); // 青
+    } else {
+      pixels.setPixelColor(0, pixels.Color(255, 0, 0)); // 赤
+    }
+    pixels.show();
+    delay(200); // デバウンス用遅延
+  }
+ 
+  lastButtonState = buttonState;
+}
